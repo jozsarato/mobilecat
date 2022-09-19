@@ -9,8 +9,7 @@ import cv2
 from matplotlib import pyplot as plt
 from matplotlib import image
 import pandas as pd
-
-Stim=np.arange(1,9)
+import os
 
 def SetupType(Setup):
     ''' set setup type '''
@@ -20,30 +19,34 @@ def SetupType(Setup):
         return [1,0,1,0,1,0,1,0]  # alternating onscreen for Setup 2
 
 
-def LoadRaw(path,Vis=0, Verb=1):
+def LoadRaw(path,Vis=0, Verb=1,ax=0,maxVis=5):
     ''' load raw world video from mobile eye-tracker'''
     
-    cap= cv2.VideoCapture(path+'/world_raw.mp4')
+    cap= cv2.VideoCapture(path+'world_raw.mp4')
     FrameN=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     if Verb:
         print('num frames= ',FrameN)
     ImagesRaw=[]
+    cplot=0
     for i in range(FrameN):
         ret, frame = cap.read()
         RGB_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # convert from BGR to RGB colorspace
         ImagesRaw.append(RGB_img)
         if Vis:
-            if i%100==0:
-                plt.imshow(RGB_img)
-                plt.show()
+            if i%100==0 and cplot<maxVis:
+                ax[cplot,0].imshow(RGB_img)
+                ax[cplot,0].set_xticks([])
+                ax[cplot,0].set_yticks([])
+                cplot+=1
     cap.release()
     return ImagesRaw
 
-def LoadGazeVid(path,Vis=0, Verb=1):
+def LoadGazeVid(path,Vis=0, Verb=1,ax=0,maxVis=5):
     ''' load gaze world video from mobile eye-tracker  - contains overlaid gaze location'''
 
-    cap= cv2.VideoCapture(path+'/world.mp4')
+    cap= cv2.VideoCapture(path+'world.mp4')
     FrameN=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cplot=0
     if Verb:
         print('num frames= ',FrameN)
     Images=[]
@@ -52,9 +55,13 @@ def LoadGazeVid(path,Vis=0, Verb=1):
         RGB_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # convert from BGR to RGB colorspace
         Images.append(RGB_img)
         if Vis:
-            if i%100==0:
-                plt.imshow(RGB_img)
-                plt.show()
+            if i%100==0 and cplot<maxVis:
+               
+                ax[cplot,1].imshow(RGB_img)
+                ax[cplot,1].set_xticks([])
+                ax[cplot,1].set_yticks([])
+                #plt.show()
+                cplot+=1
     cap.release()
     return Images
 
@@ -82,7 +89,7 @@ def CutImagebyGaze(MyImage,X,Y,cutsize,xPix,yPix):
         ImageCut=np.NAN
     return ImageCut
       
-def ExportFrames(imraw, Gaze,path,filename, CutSize=48,ToSave=1,imagesgaze=[]):
+def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,imagesgaze=[], Test=1):
     ''' imraw: raw world video
         imagesgaze: gaze containing video
         Gaze: gaze csv file
@@ -97,13 +104,22 @@ def ExportFrames(imraw, Gaze,path,filename, CutSize=48,ToSave=1,imagesgaze=[]):
     FrameN=len(imraw)
     IdxConf=Gaze['confidence']>.6
     FrameFixs=np.zeros(FrameN)
+    
+    if ToSave:
+        if os.path.exists(path)==False:
+            os.mkdir(path)
     for i in np.arange(FrameN):
-        Xmean,Ymean,FrameFixs[i]=GetGazIdx(i,IdxConf)
+        Xmean,Ymean,FrameFixs[i]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
         if np.isfinite(Xmean): # only if valid gaze
-            ImCut=CutImagebyGaze(imraw[i],Xmean,Ymean,CutSize)  # cut image
+            ImCut=CutImagebyGaze(imraw[i],Xmean,Ymean,CutSize,xPix,yPix)  # cut image
             if np.sum(np.isfinite(ImCut))>0:         
-                if ToSave:                
-                    image.imsave(path+filename+str(i)+'.jpg', ImCut)
+                if ToSave:  
+                    if Test:
+                        if i%50==0:     
+                            
+                            image.imsave(path+filename+str(i)+'.jpg', ImCut)                            
+                    else:
+                        image.imsave(path+filename+str(i)+'.jpg', ImCut)
                 if i%50==0:  # visualize every 50th stimulus
                     plt.figure()
                     plt.subplot(1,2,1)
@@ -121,4 +137,40 @@ def ExportFrames(imraw, Gaze,path,filename, CutSize=48,ToSave=1,imagesgaze=[]):
     return
 
 
+def Main(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
+    Stim=np.arange(1,9)
+    OnScreen=SetupType(Setup)
+    for stim,onscreen in zip(Stim,OnScreen):
+        print(onscreen)
+        print(stim)
+        filename=str(stim)+'_'+str(CutSize)
+        path=PathFrom+str(stim)   
+        if Mac==0:
+            pathTO=PathTo+'\\'+str(stim)
+        else:
+            pathTO=PathTo+'/'+str(stim)
+
+        if onscreen:
+            path+='s'
+            filename+='s'
+            pathTO+='s'
+        if Mac==0:    
+            path+='\\'
+            pathTO+='\\'
+        else:
+            path+='/'
+            pathTO+='\\'
+        gaze=pd.read_csv(path+'gaze_positions.csv')
+        if Vis:
+            fig,ax=plt.subplots(nrows=nvis,ncols=2)
+        imraw=LoadRaw(path,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+        imgaze=LoadGazeVid(path,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+        if Vis:
+            plt.show()
+        Dims=np.shape(imraw[0])
+        xPix=Dims[1]
+        yPix=Dims[0]
+    
+        ExportFrames(imraw, gaze,xPix,yPix,pathTO,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=imgaze, Test=Test)
+    return
     
