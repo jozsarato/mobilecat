@@ -137,7 +137,7 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
     return
 
 
-def Main(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
+def MainTrain(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
     Stim=np.arange(1,9)
     OnScreen=SetupType(Setup)
     for stim,onscreen in zip(Stim,OnScreen):
@@ -172,5 +172,23 @@ def Main(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
         yPix=Dims[0]
     
         ExportFrames(imraw, gaze,xPix,yPix,pathTO,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=imgaze, Test=Test)
+    return
+    
+
+
+def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,filename='subjx'):
+    ''' set test to 0 to save all images, othwerwise only every 50th image is saved'''
+    gaze=pd.read_csv(PathFrom+'gaze_positions.csv')
+    if Vis:
+        fig,ax=plt.subplots(nrows=nvis,ncols=2)
+    imraw=LoadRaw(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+    # imgaze=LoadGazeVid(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+    if Vis:
+        plt.show()
+    Dims=np.shape(imraw[0])
+    xPix=Dims[1]
+    yPix=Dims[0]
+
+    ExportFrames(imraw, gaze,xPix,yPix,PathTo,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=[],Test=Test)
     return
     
