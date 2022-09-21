@@ -21,17 +21,16 @@ def get_immediate_subdirectories(a_dir):
             if os.path.isdir(os.path.join(a_dir, name))]
 
 
+def GetDirs(path):
+    Dirs=get_immediate_subdirectories(path)
+    print('directories ', Dirs)
+    return np.sort(Dirs)
        
 
-def TrainImagestoNumpy(path,ToSave=0,Mac=0,  Setup=1,Dim=96):
+def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96):
     Numfiles=np.zeros(9)
-    Dirs=get_immediate_subdirectories(path)
-    if  Setup==1:
-        Dirs=np.sort(Dirs)
-    elif Setup==2: 
-        Dirs=np.sort(Dirs)
-    print('directories ', Dirs)
-    assert len(Dirs)==len(Numfiles),' file number folder number mismatch'
+
+    assert len(Dirs)==len(Numfiles), f'file number folder number mismatch, got {len(Dirs)}'
     for cd,d in enumerate(Dirs):
         if Mac==1:
             files=os.listdir(path+'/'+d)
@@ -59,8 +58,7 @@ def TrainImagestoNumpy(path,ToSave=0,Mac=0,  Setup=1,Dim=96):
 
 
 
-def TestImagestoNumpy(path,Dim=96,ToSave=0,Mac=0,  Setup=1):
-    Dirs=get_immediate_subdirectories(path)
+def TestImagestoNumpy(path,Dirs,Dim=96,ToSave=0,Mac=0,  Setup=1):
     numfiles=np.zeros(len(Dirs))
     print('directories ', Dirs)
     for cd,d in enumerate(Dirs):
@@ -87,7 +85,6 @@ def TestImagestoNumpy(path,Dim=96,ToSave=0,Mac=0,  Setup=1):
 
 
 
-
 # def RunMainExport)
 #   if Setup==1:
 #       path='PilotSelected'       
@@ -102,14 +99,16 @@ NCat=9   # number of stim categories
 
 def TrainTestSel(NCat,Dirs,NumTrain,NumTest,NumFiles,Dim):
     
+    visN=3
     if len(Dirs)!=NCat:
         print(f"WARNING mismatch directory and NCat, first {NCat}. dirs are used")
-    TrainX=np.zeros((((NumTrain*NCat,Dim,Dim,3))))
-    TestX=np.zeros((((NumTest*NCat,Dim,Dim,3))))
+    TrainX=np.int16(np.zeros((((NumTrain*NCat,Dim,Dim,3)))))
+    TestX=np.int16(np.zeros((((NumTest*NCat,Dim,Dim,3)))))
     TrainY=np.zeros(NumTrain*NCat)
     TestY=np.zeros(NumTest*NCat)    
-    
+    assert np.min(NumFiles)> NumTrain+NumTest, f"not enough files in at least one for folder, min {NumTrain+NumTest} needed"
     for cd,d in enumerate(Dirs[0:NCat]):
+        fig,ax=plt.subplots(nrows=3,ncols=2)
         print(cd,d,'Num images',int(NumFiles[cd]))
         ImageArrayL=np.load('image_'+str(d)+'.npy')
         Rand=np.intp(np.random.permutation(np.arange(NumFiles[cd])))
@@ -121,4 +120,15 @@ def TrainTestSel(NCat,Dirs,NumTrain,NumTest,NumFiles,Dim):
         TestX[Count_te_start:Count_te_start+NumTest,:,:,:]=ImageArrayL[TestIdx,:,:,:]
         TrainY[Count_tr_start:Count_tr_start+NumTrain]=cd
         TestY[Count_te_start:Count_tr_start+NumTest]=cd
+        for v in range(visN):
+            ax[v,0].imshow(TrainX[Count_tr_start+v,:,:,:])
+            ax[v,1].imshow(TestX[Count_te_start+v,:,:,:])
+            ax[v,0].set_title(d+' train'+str(v+1))
+            ax[v,1].set_title(d+' test'+str(v+1))
+            for h in range(2):
+                ax[v,h].set_xticks([])
+                ax[v,h].set_yticks([])
+            
+        plt.tight_layout()
+        
     return TrainX,TestX,TrainY,TestY
