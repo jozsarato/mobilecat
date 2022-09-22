@@ -144,6 +144,16 @@ def MakeCat(TrainY,TestY):
     return utils.to_categorical(TrainY),utils.to_categorical(TestY)
 
 
+def CNN1hidden(dims_train,numcat,kernels=3,nfilt=64):
+    '''  set up keras convolutional neural network with one hidden layer '''
+    model_CNN = Sequential()  
+    model_CNN.add(Conv2D(filters=nfilt, kernel_size=kernels, padding='same', activation='relu', input_shape=(dims_train[1],dims_train[2], dims_train[3]))) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Flatten())
+    model_CNN.add(Dense(numcat, activation='softmax'))
+    model_CNN.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return model_CNN
 
 def CNN2hidden(dims_train,numcat):
     '''  set up keras convolutional neural network with two hidden layers '''
@@ -158,6 +168,28 @@ def CNN2hidden(dims_train,numcat):
 
     
     return model_CNN
+
+
+
+def CNN3hidden(dims_train,numcat):
+    '''  set up keras convolutional neural network with two hidden layers '''
+    model_CNN = Sequential()  
+    model_CNN.add(Conv2D(filters=16, kernel_size=5, padding='same', activation='relu', input_shape=(dims_train[1],dims_train[2], dims_train[3]))) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=32, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=64, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Flatten())
+    model_CNN.add(Dense(numcat, activation='softmax'))
+    model_CNN.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return model_CNN
+
+
+
+
+
 
 
 def fitMod(model,X,testx, Y,testy,nepochs=1):
@@ -182,3 +214,32 @@ def GetAccuracies(preds,trueY,NCat):
     return accurs/Ns
 
 
+def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3):
+    
+    assert callable(model)==True,'function input expected'
+    if len(np.shape(Y))==1:
+        ylong,ylongtest=MakeCat(Y,testY)
+        yshort,yshorttest=Y,testY
+    elif len(np.shape(Y))==2:
+        yshort,yshorttest=np.argmax(Y,1),np.argmax(testY,1)
+        ylong,ylongtest=Y,testY
+    else:
+        print('Y dimensionality issue')
+        
+    compiled=model(dims_train,NCat)
+    fitted=fitMod(compiled,X,testX, ylong,ylongtest, nepochs=nepochs)
+    PredTrain=ModPred(fitted,X)
+    PredTest=ModPred(fitted,testX)
+    acctrain=GetAccuracies(PredTrain,yshort,NCat)
+    acctest=GetAccuracies(PredTest,yshorttest,NCat)
+    plt.figure()
+    plt.plot(acctrain,label='training',color='olive',linewidth=3)
+    plt.plot(acctest,label='test',color='salmon',linewidth=3)
+    plt.ylabel('accuracy',fontsize=14)
+    plt.xlabel('stimulus category',fontsize=14)
+    plt.legend()
+    plt.title(model.__name__+' trained for '+str(nepochs)+' epochs')
+    return fitted,acctrain
+    
+    
+    
