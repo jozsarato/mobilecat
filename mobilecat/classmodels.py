@@ -188,6 +188,23 @@ def CNN3hidden(dims_train,numcat):
 
 
 
+def CNN4hidden(dims_train,numcat):
+    '''  set up keras convolutional neural network with two hidden layers '''
+    model_CNN = Sequential()  
+    model_CNN.add(Conv2D(filters=16, kernel_size=5, padding='same', activation='relu', input_shape=(dims_train[1],dims_train[2], dims_train[3]))) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=32, kernel_size=5, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=32, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=64, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Flatten())
+    model_CNN.add(Dense(numcat, activation='softmax'))
+    model_CNN.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return model_CNN
+
 
 
 
@@ -214,8 +231,23 @@ def GetAccuracies(preds,trueY,NCat):
     return accurs/Ns
 
 
+def VisAccuracy(title,acctrain,acctest,NCat,nepochs):
+    plt.figure()
+    plt.plot(acctrain,label='training',color='olive',linewidth=3)
+    plt.plot(acctest,label='test',color='salmon',linewidth=3)
+    plt.plot([0,NCat-1],[1/NCat,1/NCat],color='k',linestyle='--',linewidth=3)
+    plt.plot([0,NCat-1],[1,1],color='k',linestyle='--',linewidth=3)
+    plt.text(1,1/NCat+.02,'chance',fontsize=11)
+    plt.ylabel('accuracy',fontsize=14)
+    plt.xlabel('stimulus category',fontsize=14)
+    plt.legend()
+    plt.title(title+' trained for '+str(nepochs)+' epochs-accuracy test: '+np.round(np.mean(acctest),2))
+    plt.show()
+    return 
+
+
 def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3):
-    
+    ''' pipeline for CNN compile, fitting, prediction, accuracy by category'''
     assert callable(model)==True,'function input expected'
     if len(np.shape(Y))==1:
         ylong,ylongtest=MakeCat(Y,testY)
@@ -232,14 +264,8 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3):
     PredTest=ModPred(fitted,testX)
     acctrain=GetAccuracies(PredTrain,yshort,NCat)
     acctest=GetAccuracies(PredTest,yshorttest,NCat)
-    plt.figure()
-    plt.plot(acctrain,label='training',color='olive',linewidth=3)
-    plt.plot(acctest,label='test',color='salmon',linewidth=3)
-    plt.ylabel('accuracy',fontsize=14)
-    plt.xlabel('stimulus category',fontsize=14)
-    plt.legend()
-    plt.title(model.__name__+' trained for '+str(nepochs)+' epochs')
-    return fitted,acctrain
+    VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
+    return fitted,acctrain,acctest
     
     
     
