@@ -365,13 +365,15 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
     
     print('model compiled')
     
-    #plt.ion()
+   
 
     fig,ax=plt.subplots()
     ax.set_xlabel('N epochs trained')
     ax.set_ylabel('accuracy')
     ax.set_xlim([.5,nepochs+.5])
-    ax.set_ylim([0,1])
+    ax.set_ylim([.3,1])
+    ax.grid(True)
+    ax.set_title(model.__name__)
     for n in range(nepochs):
         print(f'epoch number {n}')
         X,Y=SelTrain(TrainXrest,NTrain,NCat,dim)
