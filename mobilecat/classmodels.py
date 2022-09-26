@@ -134,7 +134,7 @@ def TrainTestSel(NCat,Dirs,NumTrain,NumTest,Dim,visN=3,path=''):
         TrainX[Count_tr_start:Count_tr_start+NumTrain,:,:,:]=ImageArrayL[TrainIdx,:,:,:]
         TestX[Count_te_start:Count_te_start+NumTest,:,:,:]=ImageArrayL[TestIdx,:,:,:]
         TrainY[Count_tr_start:Count_tr_start+NumTrain]=cd
-        TestY[Count_te_start:Count_tr_start+NumTest]=cd
+        TestY[Count_te_start:Count_te_start+NumTest]=cd
         for v in range(visN):
             ax[v,0].imshow(TrainX[Count_tr_start+v,:,:,:])
             ax[v,1].imshow(TestX[Count_te_start+v,:,:,:])
@@ -165,11 +165,10 @@ def TestSelRest(NCat,Dirs,NumTest,NumFiles,Dim,visN=3,path=''):
         print(cd,d,'Num images',int(NumFiles[cd]))
         ImageArrayL=np.load(path+'image_'+str(d)+'.npy')
         Rand=np.intp(np.random.permutation(np.arange(NumFiles[cd])))
-        TrainIdx=Rand[0:NumTrain]
-        TestIdx=Rand[NumTrain:NumTrain+NumTest]
+        TestIdx=Rand[0:NumTest]
         Count_te_start=cd*NumTest
         TestX[Count_te_start:Count_te_start+NumTest,:,:,:]=ImageArrayL[TestIdx,:,:,:]
-        TestY[Count_te_start:Count_tr_start+NumTest]=cd
+        TestY[Count_te_start:Count_te_start+NumTest]=cd
         for v in range(visN):
             ax[v,0].imshow(TrainX[Count_tr_start+v,:,:,:])
             ax[v,1].imshow(TestX[Count_te_start+v,:,:,:])
