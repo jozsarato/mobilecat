@@ -150,37 +150,47 @@ def TrainTestSel(NCat,Dirs,NumTrain,NumTest,Dim,visN=3,path=''):
 
 
 
-def TestSelRest(NCat,Dirs,NumTest,NumFiles,Dim,visN=3,path=''):
-    ''' load numpy array for each category and randomly select training and test set,
-    optionally visN examples are visualized from both training and test set '''
+def TestSelRest(NCat,Dirs,NumTest,Dim,path=''):
+    ''' load numpy array for each category and randomly select test data,
+   the rest of files kept as traninig rate (gfrom which actual training data is randomly selected '''
 
     if len(Dirs)!=NCat:
         print(f"WARNING mismatch directory and NCat, first {NCat}. dirs are used")
     TestX=np.int16(np.zeros((((NumTest*NCat,Dim,Dim,3)))))
-    
+    TrainXrest=[]
     TestY=np.zeros(NumTest*NCat)    
+  
     for cd,d in enumerate(Dirs):
-        if visN:
-            fig,ax=plt.subplots(nrows=visN,ncols=2)
-        print(cd,d,'Num images',int(NumFiles[cd]))
+      
         ImageArrayL=np.load(path+'image_'+str(d)+'.npy')
-        Rand=np.intp(np.random.permutation(np.arange(NumFiles[cd])))
-        TestIdx=Rand[0:NumTest]
+        print(cd,d,'Num images: ',np.shape(ImageArrayL)[0] )
+        Rand=np.random.permutation(np.arange(np.shape(ImageArrayL)[0]))
+        TestIdx=np.intp(Rand[0:NumTest])
+        #print(TestIdx,type(TestIdx))
+        TrainIdx=np.intp(Rand[NumTest:])
         Count_te_start=cd*NumTest
+        #print(type(Count_te_start+NumTest))
         TestX[Count_te_start:Count_te_start+NumTest,:,:,:]=ImageArrayL[TestIdx,:,:,:]
         TestY[Count_te_start:Count_te_start+NumTest]=cd
-        for v in range(visN):
-            ax[v,0].imshow(TrainX[Count_tr_start+v,:,:,:])
-            ax[v,1].imshow(TestX[Count_te_start+v,:,:,:])
-            ax[v,0].set_title(d+' train'+str(v+1))
-            ax[v,1].set_title(d+' test'+str(v+1))
-            for h in range(2):
-                ax[v,h].set_xticks([])
-                ax[v,h].set_yticks([])
-        if visN:    
-            plt.tight_layout()
-        
-    return TrainX,TestX,TrainY,TestY
+        TrainXrest.append(ImageArrayL[TrainIdx,:,:,:])
+    return TrainXrest,TestX,TestY
+
+def SelTrain(TrainXrest,NumTrain,NCat,Dim):
+    ''' load numpy array for each category and randomly select training and test set,
+    optionally visN examples are visualized from both training and test set '''
+
+    TrainX=np.int16(np.zeros((((NumTrain*NCat,Dim,Dim,3)))))
+    TrainY=np.zeros(NumTrain*NCat)
+    for cd in range(NCat):  
+        N=len(TrainXrest[cd])
+        print(cd,'num: ', N)
+        Rand=np.intp(np.random.permutation(np.arange(N)))
+        TrainIdx=Rand[0:NumTrain]
+        Count_tr_start=cd*NumTrain
+        TrainY[Count_tr_start:Count_tr_start+NumTrain]=cd
+        TrainX[Count_tr_start:Count_tr_start+NumTrain]=TrainXrest[cd][TrainIdx]
+    return TrainX,TrainY
+
 
 
 
@@ -340,11 +350,69 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3,catnames=''):
     VisConfMat(mattrain,NCat,labels=catnames,title='training')
     plt.subplot(1,2,2)
     VisConfMat(mattest,NCat,labels=catnames,title='test')
+    plt.title(model.__name__)
     plt.tight_layout()
     return fitted,acctrain,acctest
     
     
+def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,catnames=''):
+    ''' pipeline for CNN compile, fitting, prediction, accuracy by category
+    training data is selected randomly at each epoch from all availible images'''
+    assert callable(model)==True,'function input expected'
+  
     
+    compiled=model([0,dim,dim,3],NCat)
+    
+    print('model compiled')
+    
+    #plt.ion()
+
+    fig,ax=plt.subplots()
+    ax.set_xlabel('N epochs trained')
+    ax.set_ylabel('accuracy')
+    ax.set_xlim([.5,nepochs+.5])
+    ax.set_ylim([0,1])
+    for n in range(nepochs):
+        print(f'epoch number {n}')
+        X,Y=SelTrain(TrainXrest,NTrain,NCat,dim)
+ 
+        if len(np.shape(Y))==1:
+            ylong,ylongtest=MakeCat(Y,testY)
+            yshort,yshorttest=Y,testY
+        elif len(np.shape(Y))==2:
+            yshort,yshorttest=np.argmax(Y,1),np.argmax(testY,1)
+            ylong,ylongtest=Y,testY
+        else:
+            print('Y dimensionality issue')
+        if n==0:
+            fitted=fitMod(compiled,X,testX, ylong,ylongtest, nepochs=1)
+        else:
+            fitted=fitMod(fitted,X,testX, ylong,ylongtest, nepochs=1)
+            
+        PredTrain=ModPred(fitted,X)
+        PredTest=ModPred(fitted,testX)
+        acctrain=GetAccuracies(PredTrain,yshort,NCat)
+        acctest=GetAccuracies(PredTest,yshorttest,NCat)
+        ax.scatter(n+1,np.mean(acctrain),color='g')
+        ax.scatter(n+1,np.mean(acctest),color='salmon')
+       # plt.show()
+        
+    VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
+
+    mattrain=GetConfMat(PredTrain,yshort,NCat)
+    mattest=GetConfMat(PredTest,yshorttest,NCat)
+    
+    plt.figure(figsize=(7,3))
+    plt.subplot(1,2,1)
+    VisConfMat(mattrain,NCat,labels=catnames,title='training')
+    plt.subplot(1,2,2)
+    VisConfMat(mattest,NCat,labels=catnames,title='test')
+    plt.title(model.__name__)
+    plt.tight_layout()
+    plt.show()
+    return fitted,acctrain,acctest
+    
+        
     
 def augmentX(X):
     TrainXAug1=AugmentBrightness(X,MinBr=.5,MaxBr=1.5)
