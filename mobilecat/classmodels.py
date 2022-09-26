@@ -64,7 +64,7 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
                 #image = load_img(path+'\\'+d+'/'+f)
                 data = img_to_array(Image)
                 ImageArray[cf,:,:,:]=data
-            np.save('image_'+str(d)+'_st'+str(Setup),ImageArray)
+            np.save(path+'image_'+str(d),ImageArray)
     return Numfiles 
 
 
@@ -92,7 +92,7 @@ def TestImagestoNumpy(path,Dirs,Dim=96,ToSave=0,Mac=0,  Setup=1):
                     Image=plt.imread(path+'\\'+d+'/'+f)
                 data = img_to_array(Image)
                 ImageArray[cf,:,:,:]=data
-            np.save('image_'+str(d)+'_test',ImageArray)
+            np.save(path+'image_'+str(d)+'_test',ImageArray)
     return numfiles 
 
 
@@ -105,7 +105,7 @@ def TestImagestoNumpy(path,Dirs,Dim=96,ToSave=0,Mac=0,  Setup=1):
     
     
    
-def TrainTestSel(NCat,Dirs,NumTrain,NumTest,NumFiles,Dim,visN=3):
+def TrainTestSel(NCat,Dirs,NumTrain,NumTest,Dim,visN=3,path=''):
     ''' load numpy array for each category and randomly select training and test set,
     optionally visN examples are visualized from both training and test set '''
 
@@ -115,13 +115,18 @@ def TrainTestSel(NCat,Dirs,NumTrain,NumTest,NumFiles,Dim,visN=3):
     TestX=np.int16(np.zeros((((NumTest*NCat,Dim,Dim,3)))))
     TrainY=np.zeros(NumTrain*NCat)
     TestY=np.zeros(NumTest*NCat)    
-    assert np.min(NumFiles)> NumTrain+NumTest, f"not enough files in at least one for folder, min {NumTrain+NumTest} needed"
-    for cd,d in enumerate(Dirs[0:NCat]):
+    f"not enough files in at least one for folder, min {NumTrain+NumTest} needed"
+    for cd,d in enumerate(Dirs):
         if visN:
             fig,ax=plt.subplots(nrows=visN,ncols=2)
-        print(cd,d,'Num images',int(NumFiles[cd]))
-        ImageArrayL=np.load('image_'+str(d)+'.npy')
-        Rand=np.intp(np.random.permutation(np.arange(NumFiles[cd])))
+        print('load: ',path+'image_'+str(d)+'.npy')
+        ImageArrayL=np.load(path+'image_'+str(d)+'.npy')
+        Numim=np.shape(ImageArrayL)[0]
+        assert Numim >= NumTrain+NumTest, f'not enough imqages, test+train= {NumTrain+NumTest}'
+        
+        print(cd,d,'Num images',Numim)
+
+        Rand=np.intp(np.random.permutation(np.arange(Numim)))
         TrainIdx=Rand[0:NumTrain]
         TestIdx=Rand[NumTrain:NumTrain+NumTest]
         Count_tr_start=cd*NumTrain
@@ -142,6 +147,42 @@ def TrainTestSel(NCat,Dirs,NumTrain,NumTest,NumFiles,Dim,visN=3):
             plt.tight_layout()
         
     return TrainX,TestX,TrainY,TestY
+
+
+
+def TestSelRest(NCat,Dirs,NumTest,NumFiles,Dim,visN=3,path=''):
+    ''' load numpy array for each category and randomly select training and test set,
+    optionally visN examples are visualized from both training and test set '''
+
+    if len(Dirs)!=NCat:
+        print(f"WARNING mismatch directory and NCat, first {NCat}. dirs are used")
+    TestX=np.int16(np.zeros((((NumTest*NCat,Dim,Dim,3)))))
+    
+    TestY=np.zeros(NumTest*NCat)    
+    for cd,d in enumerate(Dirs):
+        if visN:
+            fig,ax=plt.subplots(nrows=visN,ncols=2)
+        print(cd,d,'Num images',int(NumFiles[cd]))
+        ImageArrayL=np.load(path+'image_'+str(d)+'.npy')
+        Rand=np.intp(np.random.permutation(np.arange(NumFiles[cd])))
+        TrainIdx=Rand[0:NumTrain]
+        TestIdx=Rand[NumTrain:NumTrain+NumTest]
+        Count_te_start=cd*NumTest
+        TestX[Count_te_start:Count_te_start+NumTest,:,:,:]=ImageArrayL[TestIdx,:,:,:]
+        TestY[Count_te_start:Count_tr_start+NumTest]=cd
+        for v in range(visN):
+            ax[v,0].imshow(TrainX[Count_tr_start+v,:,:,:])
+            ax[v,1].imshow(TestX[Count_te_start+v,:,:,:])
+            ax[v,0].set_title(d+' train'+str(v+1))
+            ax[v,1].set_title(d+' test'+str(v+1))
+            for h in range(2):
+                ax[v,h].set_xticks([])
+                ax[v,h].set_yticks([])
+        if visN:    
+            plt.tight_layout()
+        
+    return TrainX,TestX,TrainY,TestY
+
 
 
 
@@ -291,12 +332,11 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3,catnames=''):
     acctrain=GetAccuracies(PredTrain,yshort,NCat)
     acctest=GetAccuracies(PredTest,yshorttest,NCat)
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
-    VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
 
     mattrain=GetConfMat(PredTrain,yshort,NCat)
     mattest=GetConfMat(PredTest,yshorttest,NCat)
     
-    plt.figure()
+    plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
     VisConfMat(mattrain,NCat,labels=catnames,title='training')
     plt.subplot(1,2,2)
@@ -305,7 +345,13 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3,catnames=''):
     return fitted,acctrain,acctest
     
     
-
+    
+    
+def augmentX(X):
+    TrainXAug1=AugmentBrightness(X,MinBr=.5,MaxBr=1.5)
+    TrainXAug2=AugmentRotation(X)
+    TrainXAug3=AugmentShear(X)
+    return np.concatenate((TrainXAug1,TrainXAug2,TrainXAug3),axis=0)   
 
 def AugmentBrightness(ToAugment,MinBr=.5,MaxBr=1.5):
     NImage=np.shape(ToAugment)[0]
