@@ -21,6 +21,11 @@ from tensorflow.keras import utils
 
 # from tensorflow import keras
 
+from skimage.util import random_noise
+from skimage import transform
+
+
+
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -231,7 +236,28 @@ def GetAccuracies(preds,trueY,NCat):
     return accurs/Ns
 
 
+def GetConfMat(preds,truey,NCat):
+    MyConfMat=np.zeros((NCat,NCat))
+    for i in range(NCat):
+        for j in range(NCat):
+            MyConfMat[j,i]=np.sum(preds[truey==i]==j)
+    return MyConfMat
+
+def VisConfMat(confmat,NCat,labels=0,title=''):
+    ''' visualize confusion matrix'''
+
+    plt.pcolor(confmat)
+    plt.colorbar()
+    if type(labels)!=int:
+        plt.xticks(np.arange(NCat)+.5,labels[0:NCat],fontsize=12)
+        plt.yticks(np.arange(NCat)+.5,labels[0:NCat],fontsize=12)
+    plt.xlabel('True category',fontsize=14)
+    plt.ylabel('Predicted category',fontsize=14)
+    plt.title(title,fontsize=16)
+    return 
+
 def VisAccuracy(title,acctrain,acctest,NCat,nepochs):
+    ''' visualize accuracy for training and test for each stimulus type '''
     plt.figure()
     plt.plot(acctrain,label='training',color='olive',linewidth=3)
     plt.plot(acctest,label='test',color='salmon',linewidth=3)
@@ -241,12 +267,12 @@ def VisAccuracy(title,acctrain,acctest,NCat,nepochs):
     plt.ylabel('accuracy',fontsize=14)
     plt.xlabel('stimulus category',fontsize=14)
     plt.legend()
-    plt.title(title+' trained for '+str(nepochs)+' epochs-accuracy test: '+np.round(np.mean(acctest),2))
+    plt.title(title+' trained for '+str(nepochs)+' epochs-accuracy test: '+str(np.round(np.mean(acctest),2)))
     plt.show()
     return 
 
 
-def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3):
+def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3,catnames=''):
     ''' pipeline for CNN compile, fitting, prediction, accuracy by category'''
     assert callable(model)==True,'function input expected'
     if len(np.shape(Y))==1:
@@ -265,7 +291,56 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3):
     acctrain=GetAccuracies(PredTrain,yshort,NCat)
     acctest=GetAccuracies(PredTest,yshorttest,NCat)
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
+    VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
+
+    mattrain=GetConfMat(PredTrain,yshort,NCat)
+    mattest=GetConfMat(PredTest,yshorttest,NCat)
+    
+    plt.figure()
+    plt.subplot(1,2,1)
+    VisConfMat(mattrain,NCat,labels=catnames,title='training')
+    plt.subplot(1,2,2)
+    VisConfMat(mattest,NCat,labels=catnames,title='test')
+    plt.tight_layout()
     return fitted,acctrain,acctest
     
     
-    
+
+
+def AugmentBrightness(ToAugment,MinBr=.5,MaxBr=1.5):
+    NImage=np.shape(ToAugment)[0]
+    Rand=np.random.uniform(MinBr,MaxBr,NImage)
+    Augmented=np.zeros_like(ToAugment)
+    for cim,randman in enumerate(Rand):
+        Augmented[cim,:,:,:]=ToAugment[cim,:,:,:]*randman
+    Augmented[Augmented<0]=0
+    Augmented[Augmented>255]=255
+    Augmented=np.intp(Augmented)
+    return Augmented
+
+def AugmentSaltPNoise(ToAugment,prob=.05):
+    NImage=np.shape(ToAugment)[0]
+    Augmented=np.zeros_like(ToAugment)
+    for cim  in range(NImage):
+        Augmented[cim,:,:,:]=random_noise(ToAugment[cim,:,:,:]/255,mode='s&p',amount=prob)
+    Augmented=np.intp(Augmented*255)
+    return Augmented
+def AugmentRotation(ToAugment,MinR=-np.pi/6,MaxR=np.pi/6):
+    NImage=np.shape(ToAugment)[0]
+    Augmented=np.zeros_like(ToAugment)
+    Rand=np.random.uniform(MinR,MaxR,NImage)
+    for cim,randman in enumerate(Rand):
+        tf=transform.SimilarityTransform(rotation=randman)
+        Augmented[cim,:,:,:]=transform.warp(ToAugment[cim,:,:,:],tf)
+    #Augmented=np.intp(Augmented*255)
+    return Augmented
+
+def AugmentShear(ToAugment,MinR=-np.pi/6,MaxR=np.pi/6):
+    NImage=np.shape(ToAugment)[0]
+    Augmented=np.zeros_like(ToAugment)
+    Rand=np.random.uniform(MinR,MaxR,NImage)
+    for cim,randman in enumerate(Rand):
+        tf=transform.AffineTransform(shear=randman)
+        Augmented[cim,:,:,:]=transform.warp(ToAugment[cim,:,:,:],tf)
+    #Augmented=np.intp(Augmented*255)
+    return Augmented
