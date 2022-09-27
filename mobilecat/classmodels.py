@@ -345,13 +345,7 @@ def pipeline(model,X,testX, Y,testY,dims_train,NCat=9,nepochs=3,catnames=''):
     mattrain=GetConfMat(PredTrain,yshort,NCat)
     mattest=GetConfMat(PredTest,yshorttest,NCat)
     
-    plt.figure(figsize=(7,3))
-    plt.subplot(1,2,1)
-    VisConfMat(mattrain,NCat,labels=catnames,title='training')
-    plt.subplot(1,2,2)
-    VisConfMat(mattest,NCat,labels=catnames,title='test')
-    plt.title(model.__name__)
-    plt.tight_layout()
+    VisMats(mattrain,mattest,NCat,catnames,model.__name__)
     return fitted,acctrain,acctest
     
     
@@ -367,17 +361,57 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
     
    
 
-    fig,ax=plt.subplots()
-    ax.set_xlabel('N epochs trained')
-    ax.set_ylabel('accuracy')
-    ax.set_xlim([.5,nepochs+.5])
-    ax.set_ylim([.3,1])
-    ax.grid(True)
-    ax.set_title(model.__name__)
+    ax=Learnplot(model.__name__,nepochs,trainname='rand trained')
+
     for n in range(nepochs):
         print(f'epoch number {n}')
         X,Y=SelTrain(TrainXrest,NTrain,NCat,dim)
  
+        if len(np.shape(Y))==1:
+            ylong,ylongtest=MakeCat(Y,testY)
+            yshort,yshorttest=Y,testY
+        elif len(np.shape(Y))==2:
+            yshort,yshorttest=np.argmax(Y,1),np.argmax(testY,1)
+            ylong,ylongtest=Y,testY
+        else:
+            print('Y dimensionality issue')
+        if n==0:
+            fitted=fitMod(compiled,X,testX, ylong,ylongtest, nepochs=1)
+        else:
+            fitted=fitMod(fitted,X,testX, ylong,ylongtest, nepochs=1)
+            
+        PredTrain=ModPred(fitted,X)
+        PredTest=ModPred(fitted,testX)
+        acctrain=GetAccuracies(PredTrain,yshort,NCat)
+        acctest=GetAccuracies(PredTest,yshorttest,NCat)
+        ax.scatter(n+1,np.mean(acctrain),color='g')
+        ax.scatter(n+1,np.mean(acctest),color='salmon')
+        
+    VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
+
+    mattrain=GetConfMat(PredTrain,yshort,NCat)
+    mattest=GetConfMat(PredTest,yshorttest,NCat)
+    
+    VisMats(mattrain,mattest,NCat,catnames,model.__name__,trainingName=' random')
+    return fitted,acctrain,acctest
+    
+def pipelineTrainAugment(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,catnames=''):
+    ''' pipeline for CNN compile, fitting, prediction, accuracy by category
+    training data is selected randomly at each epoch from all availible images'''
+    assert callable(model)==True,'function input expected'
+  
+    
+    compiled=model([0,dim,dim,3],NCat)
+    
+    print('model compiled')
+    
+   
+
+    ax=Learnplot(model.__name__,nepochs,trainname=' augmented trained')
+    for n in range(nepochs):
+        print(f'epoch number {n}')
+        X,Y=SelTrain(TrainXrest,NTrain,NCat,dim)
+        X,Y=augmentXY(X,Y)
         if len(np.shape(Y))==1:
             ylong,ylongtest=MakeCat(Y,testY)
             yshort,yshorttest=Y,testY
@@ -403,26 +437,43 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
 
     mattrain=GetConfMat(PredTrain,yshort,NCat)
     mattest=GetConfMat(PredTest,yshorttest,NCat)
+    VisMats(mattrain,mattest,NCat,catnames,model.__name__,trainingName=' augmented')
+    return fitted,acctrain,acctest        
     
+def VisMats(c1,c2,NCat,catnames,suptitle,trainingName=''):
     plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
-    VisConfMat(mattrain,NCat,labels=catnames,title='training')
+    VisConfMat(c1,NCat,labels=catnames,title='training'+trainingName)
     plt.subplot(1,2,2)
-    VisConfMat(mattest,NCat,labels=catnames,title='test')
-    plt.title(model.__name__)
+    VisConfMat(c2,NCat,labels=catnames,title='test')
+    plt.suptitle(suptitle)
     plt.tight_layout()
     plt.show()
-    return fitted,acctrain,acctest
-    
-        
-    
-def augmentX(X):
-    TrainXAug1=AugmentBrightness(X,MinBr=.5,MaxBr=1.5)
-    TrainXAug2=AugmentRotation(X)
-    TrainXAug3=AugmentShear(X)
-    return np.concatenate((TrainXAug1,TrainXAug2,TrainXAug3),axis=0)   
 
-def AugmentBrightness(ToAugment,MinBr=.5,MaxBr=1.5):
+
+def Learnplot(modname,nepoch,trainname=''):
+    fig,ax=plt.subplots()
+    ax.set_xlabel('N epochs trained')
+    ax.set_ylabel('accuracy')
+    ax.set_xlim([.5,nepoch+.5])
+    ax.set_ylim([.3,1])
+    ax.grid(True)
+    ax.set_title(modname+trainname)
+
+    return ax
+
+
+
+def augmentXY(X,Y):
+    TrainXAug1=AugmentBrightness(X,MinBr=.5,MaxBr=1.2)
+    #TrainXAug2=AugmentRotation(X)
+    TrainXAug2=AugmentShear(X)
+    Xaug=np.concatenate((TrainXAug1,TrainXAug2),axis=0)   
+    Yaug=np.concatenate((Y,Y))
+    return Xaug, Yaug
+
+
+def AugmentBrightness(ToAugment,MinBr=.6,MaxBr=1.2):
     NImage=np.shape(ToAugment)[0]
     Rand=np.random.uniform(MinBr,MaxBr,NImage)
     Augmented=np.zeros_like(ToAugment)
