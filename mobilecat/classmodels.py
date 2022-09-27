@@ -386,7 +386,8 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
         acctest=GetAccuracies(PredTest,yshorttest,NCat)
         ax.scatter(n+1,np.mean(acctrain),color='g')
         ax.scatter(n+1,np.mean(acctest),color='salmon')
-        
+        ax.legend(['training','test'])
+
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
 
     mattrain=GetConfMat(PredTrain,yshort,NCat)
@@ -429,12 +430,11 @@ def pipelineTrainAugment(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs
         PredTest=ModPred(fitted,testX)
         acctrain=GetAccuracies(PredTrain,yshort,NCat)
         acctest=GetAccuracies(PredTest,yshorttest,NCat)
-        ax.scatter(n+1,np.mean(acctrain),color='g')
+        ax.scatter(n+1,np.mean(acctrain),color='olive')
         ax.scatter(n+1,np.mean(acctest),color='salmon')
-       # plt.show()
+        ax.legend(['training','test'])
         
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
-
     mattrain=GetConfMat(PredTrain,yshort,NCat)
     mattest=GetConfMat(PredTest,yshorttest,NCat)
     VisMats(mattrain,mattest,NCat,catnames,model.__name__,trainingName=' augmented')
