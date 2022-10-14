@@ -43,7 +43,7 @@ def LoadRaw(path,Vis=0, Verb=1,ax=0,maxVis=5):
 
 def LoadGazeVid(path,Vis=0, Verb=1,ax=0,maxVis=5):
     ''' load gaze world video from mobile eye-tracker  - contains overlaid gaze location'''
-
+    
     cap= cv2.VideoCapture(path+'world.mp4')
     FrameN=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cplot=0
@@ -64,7 +64,27 @@ def LoadGazeVid(path,Vis=0, Verb=1,ax=0,maxVis=5):
                 cplot+=1
     cap.release()
     return Images
-
+def LoadVid(path,Vis=0, Verb=1,ax=0,maxVis=5,filename='world.mp4'):
+    ''' load gaze world video from mobile eye-tracker  - contains overlaid gaze location'''
+    cap= cv2.VideoCapture(path+filename)
+    FrameN=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cplot=0
+    if Verb:
+        print('num frames= ',FrameN)
+    Images=[]
+    for i in range(FrameN):
+        ret, frame = cap.read()
+        RGB_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # convert from BGR to RGB colorspace
+        Images.append(RGB_img)
+        if Vis:
+            if i%100==0 and cplot<maxVis:
+                ax[cplot].imshow(RGB_img)
+                ax[cplot].set_xticks([])
+                ax[cplot].set_yticks([])
+                #plt.show()
+                cplot+=1
+    cap.release()
+    return Images
 
 
 def GetGazIdx(ind,IdxConf,Gaze,xPix,yPix):
@@ -102,24 +122,29 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
     if len(imagesgaze)>0:
         assert np.abs(len(imraw)-len(imagesgaze))<2,'unequal videos'
     FrameN=len(imraw)
+    print('n frames to exp: ',len(imraw))
     IdxConf=Gaze['confidence']>.6
+    print('Confident Gaze used',np.sum(IdxConf))
+    print('Uncertain Gaze unused',np.sum(IdxConf==False))
+    FrameStart=Gaze['world_index'].iloc[0]
+    FrameEnd=Gaze['world_index'].iloc[-1]
     FrameFixs=np.zeros(FrameN)
     
     if ToSave:
         if os.path.exists(path)==False:
             os.mkdir(path)
-    for i in np.arange(FrameN):
-        Xmean,Ymean,FrameFixs[i]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
+    for ci,i in enumerate(np.arange(FrameStart,FrameEnd)):
+        Xmean,Ymean,FrameFixs[ci]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
         if np.isfinite(Xmean): # only if valid gaze
-            ImCut=CutImagebyGaze(imraw[i],Xmean,Ymean,CutSize,xPix,yPix)  # cut image
+            ImCut=CutImagebyGaze(imraw[ci],Xmean,Ymean,CutSize,xPix,yPix)  # cut image
             if np.sum(np.isfinite(ImCut))>0:         
                 if ToSave:  
                     if Test:
-                        if i%50==0:     
-                            
-                            image.imsave(path+filename+str(i)+'.jpg', ImCut)                            
+                        if i%50==0: 
+                           # print(path+filename+str(i)+'.jpg')
+                            image.imsave(path+filename+'_'+str(i)+'.jpg', ImCut)                            
                     else:
-                        image.imsave(path+filename+str(i)+'.jpg', ImCut)
+                        image.imsave(path+filename+'_'+str(i)+'.jpg', ImCut)
                 if i%50==0:  # visualize every 50th stimulus
                     plt.figure()
                     plt.subplot(1,2,1)
@@ -127,9 +152,9 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
                     plt.yticks([])
                     plt.title('Full world')
                     if len(imagesgaze)>0:
-                        plt.imshow(imagesgaze[i])
+                        plt.imshow(imagesgaze[ci])
                     else:
-                        plt.imshow(imraw[i])
+                        plt.imshow(imraw[ci])
                     plt.subplot(1,2,2)
                     plt.imshow(ImCut)
                     plt.xticks([])
@@ -178,18 +203,22 @@ def MainTrain(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
 
 def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,filename='subjx'):
     ''' set test to 0 to save all images, othwerwise only every 50th image is saved'''
+    print('Loading from: ',PathFrom)
+    print('Exportin to: ',PathTo)
+
     gaze=pd.read_csv(PathFrom+'gaze_positions.csv')
+    print('Gaze Shape: ',np.shape(gaze))
     if Vis:
-        fig,ax=plt.subplots(nrows=nvis,ncols=2)
-    imraw=LoadRaw(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
-    # imgaze=LoadGazeVid(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+        fig,ax=plt.subplots(nrows=nvis)
+    images=LoadVid(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+    print('length video: ', len(images))
     if Vis:
         plt.show()
-    Dims=np.shape(imraw[0])
+    Dims=np.shape(images[0])
     xPix=Dims[1]
     yPix=Dims[0]
 
-    ExportFrames(imraw, gaze,xPix,yPix,PathTo,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=[],Test=Test)
+    ExportFrames(images, gaze,xPix,yPix,PathTo,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=[],Test=Test)
     return
 
 
