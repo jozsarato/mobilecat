@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from matplotlib import image
 import pandas as pd
 import os
-
+from os.path import isfile, join
 def SetupType(Setup):
     ''' set setup type '''
     if Setup==1:
@@ -222,6 +222,13 @@ def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,fil
     return
 
 
-
-
+def ReadIm(path):
+    images = [f for f in os.listdir(path) if isfile(join(path, f))]
+    print('files found: ',len(images))
+    im1=plt.imread(path+images[0])
+    np.shape(im1)
+    ImArray=np.zeros(((len(images),np.shape(im1)[0],np.shape(im1)[1],np.shape(im1)[2])),dtype='uint8')
+    for  ci,im in enumerate(images):
+        ImArray[ci,:,:,:]=plt.imread(path+im)
+    return ImArray
     
