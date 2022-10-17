@@ -391,7 +391,7 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
         ax.legend(['training','test'])
 
         end=time.time()
-        print('pipeline epoch length: ',end - start)
+        print('pipeline epoch length: ',np.round(end - start,3),' sec')
 
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
 
