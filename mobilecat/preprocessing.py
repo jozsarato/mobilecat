@@ -93,14 +93,15 @@ def GetGazIdx(ind,IdxConf,Gaze,xPix,yPix):
     Idx=np.nonzero(Idx.to_numpy()==True)[0]
     if np.sum(np.isfinite(Idx))>0:
       #  print(Idx)
-        Xmean=int(np.mean(Gaze['norm_pos_x'][Idx]*xPix))
-        Ymean=int(np.mean(Gaze['norm_pos_y'][Idx]*yPix))
+        X=np.round(Gaze['norm_pos_x'][Idx].to_numpy()*xPix)
+        Y=np.round(Gaze['norm_pos_y'][Idx].to_numpy()*yPix)
+    
        # print(i,'length',np.sum(Idx))
     else:
-        Xmean,Ymean=np.NAN,np.NAN
+        X,Y=np.NAN,np.NAN
         print(ind,'not valid')
-        
-    return Xmean,Ymean,len(Idx)
+    return X,Y,np.mean(X),np.mean(Y),len(Idx)
+
 
 def CutImagebyGaze(MyImage,X,Y,cutsize,xPix,yPix):
     if Y>cutsize and Y<yPix-cutsize and X>cutsize and X<xPix-cutsize:
@@ -109,7 +110,7 @@ def CutImagebyGaze(MyImage,X,Y,cutsize,xPix,yPix):
         ImageCut=np.NAN
     return ImageCut
       
-def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,imagesgaze=[], Test=1):
+def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,imagesgaze=[], Test=1,Each=0):
     ''' imraw: raw world video
         imagesgaze: gaze containing video
         Gaze: gaze csv file
@@ -117,6 +118,7 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
         filename to save files (frame number added automatically)
         CutSize: output size (pixels), size around gaze location, so 48 results in output 96*96
         ToSave: whether output is saved
+        Each:  each gaze sample within each frame has an image exported- much more images
         
         '''
     if len(imagesgaze)>0:
@@ -134,31 +136,45 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
         if os.path.exists(path)==False:
             os.mkdir(path)
     for ci,i in enumerate(np.arange(FrameStart,FrameEnd)):
-        Xmean,Ymean,FrameFixs[ci]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
+        X,Y,Xmean,Ymean,FrameFixs[ci]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
         if np.isfinite(Xmean): # only if valid gaze
-            ImCut=CutImagebyGaze(imraw[ci],Xmean,Ymean,CutSize,xPix,yPix)  # cut image
-            if np.sum(np.isfinite(ImCut))>0:         
-                if ToSave:  
-                    if Test:
-                        if i%50==0: 
-                           # print(path+filename+str(i)+'.jpg')
-                            image.imsave(path+filename+'_'+str(i)+'.jpg', ImCut)                            
-                    else:
-                        image.imsave(path+filename+'_'+str(i)+'.jpg', ImCut)
-                if i%50==0:  # visualize every 50th stimulus
-                    plt.figure()
-                    plt.subplot(1,2,1)
-                    plt.xticks([])
-                    plt.yticks([])
-                    plt.title('Full world')
-                    if len(imagesgaze)>0:
-                        plt.imshow(imagesgaze[ci])
-                    else:
-                        plt.imshow(imraw[ci])
-                    plt.subplot(1,2,2)
-                    plt.imshow(ImCut)
-                    plt.xticks([])
-                    plt.yticks([])
+            if Each:
+                cc=0
+                for x,y in zip(X,Y):
+                    cc+=1
+                    if np.isfinite(x) and np.isfinite(y):
+                        ImCut=CutImagebyGaze(imraw[ci],int(x),int(y),CutSize,xPix,yPix)
+                        if  np.sum(np.isfinite(ImCut))>0 and ToSave:
+                            if Test:
+                                if i%50==0:
+                                    image.imsave(path+'frame'+str(i)+'sample_'+str(cc)+'.jpg', ImCut)                            
+                            else:
+                                image.imsave(path+'_frame'+str(i)+'sample_'+str(cc)+'.jpg', ImCut)                            
+
+                        
+            else:
+                ImCut=CutImagebyGaze(imraw[ci],int(Xmean),int(Ymean),CutSize,xPix,yPix)  # cut image
+                if np.sum(np.isfinite(ImCut))>0:         
+                    if ToSave:  
+                        if Test: 
+                            if i%50==0: 
+                                image.imsave(path+filename+'_frame'+str(i)+'.jpg', ImCut)                            
+                        else:
+                            image.imsave(path+filename+'_frame'+str(i)+'.jpg', ImCut)
+                    if i%50==0:  # visualize every 50th stimulus
+                        plt.figure()
+                        plt.subplot(1,2,1)
+                        plt.xticks([])
+                        plt.yticks([])
+                        plt.title('Full world')
+                        if len(imagesgaze)>0:
+                            plt.imshow(imagesgaze[ci])
+                        else:
+                            plt.imshow(imraw[ci])
+                        plt.subplot(1,2,2)
+                        plt.imshow(ImCut)
+                        plt.xticks([])
+                        plt.yticks([])
     return
 
 
@@ -201,11 +217,12 @@ def MainTrain(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1):
     
 
 
-def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,filename='subjx'):
+def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,filename='subjx',EachSample=0):
     ''' set test to 0 to save all images, othwerwise only every 50th image is saved'''
     print('Loading from: ',PathFrom)
     print('Exportin to: ',PathTo)
-
+    if EachSample:
+        print('!!Exporting each sample')
     gaze=pd.read_csv(PathFrom+'gaze_positions.csv')
     print('Gaze Shape: ',np.shape(gaze))
     if Vis:
@@ -218,7 +235,7 @@ def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,fil
     xPix=Dims[1]
     yPix=Dims[0]
 
-    ExportFrames(images, gaze,xPix,yPix,PathTo,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=[],Test=Test)
+    ExportFrames(images, gaze,xPix,yPix,PathTo,filename, CutSize=CutSize,ToSave=ToSave,imagesgaze=[],Test=Test,Each=EachSample)
     return
 
 
