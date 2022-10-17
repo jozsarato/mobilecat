@@ -24,7 +24,7 @@ from tensorflow.keras import utils
 from skimage.util import random_noise
 from skimage import transform
 
-import timeit
+import time
 
 
 
@@ -365,7 +365,7 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
     ax=Learnplot(model.__name__,nepochs,trainname='rand trained')
 
     for n in range(nepochs):
-        start = timeit.timeit()
+        start = time.time()
         print(f'epoch number {n}')
         X,Y=SelTrain(TrainXrest,NTrain,NCat,dim)
  
@@ -390,8 +390,8 @@ def pipelineTrainRand(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs=3,
         ax.scatter(n+1,np.mean(acctest),color='salmon')
         ax.legend(['training','test'])
 
-        
-        print('pipeline epoch length: ',timeit.timeit() - start)
+        end=time.time()
+        print('pipeline epoch length: ',end - start)
 
     VisAccuracy(model.__name__,acctrain,acctest,NCat,nepochs)
 
