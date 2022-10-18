@@ -446,6 +446,7 @@ def pipelineTrainAugment(model,TrainXrest,testX, testY,NTrain,dim,NCat=9,nepochs
     return fitted,acctrain,acctest        
     
 def VisMats(c1,c2,NCat,catnames,suptitle,trainingName=''):
+    ''' visualize confucion matrix training and test'''
     plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
     VisConfMat(c1,NCat,labels=catnames,title='training'+trainingName)
@@ -457,6 +458,7 @@ def VisMats(c1,c2,NCat,catnames,suptitle,trainingName=''):
 
 
 def Learnplot(modname,nepoch,trainname=''):
+    ''' plot for deep learning training progress '''
     fig,ax=plt.subplots()
     ax.set_xlabel('N epochs trained')
     ax.set_ylabel('accuracy')
@@ -518,6 +520,8 @@ def AugmentShear(ToAugment,MinR=-np.pi/6,MaxR=np.pi/6):
 
 
 def FramePreds(frameN,preds):  
+    ''' for an array of frame numbers and predictions;
+    calcualte max and probability of max predictions'''
     frames, frameCounts=np.unique(frameN, return_counts=True)
     maxCounts=np.zeros(len(frames),dtype=int)
     maxPreds=np.zeros(len(frames),dtype=int)
@@ -529,6 +533,12 @@ def FramePreds(frameN,preds):
     return maxPreds,maxCounts/frameCounts  
 
 def VisPredFrames(images,frames,preds,nframe=6,nsamp=10,startF=0):
+    '''   visualize model predictions, flexible frame number  and sample number
+        figure size adapts to number of frames and samples
+        images: array of images
+        frames: frame number array (one/image)
+        preds: predictions
+        startF: starting frame number '''
     fig,ax=plt.subplots(nrows=nframe,ncols=nsamp,figsize=(nsamp*1.3,nframe*1.7))
     frameNs,counts=np.unique(frames,return_counts=True)
     for ccf,cf in enumerate(np.arange(startF,startF+nframe)):
