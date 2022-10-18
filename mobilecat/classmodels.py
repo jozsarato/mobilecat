@@ -515,3 +515,28 @@ def AugmentShear(ToAugment,MinR=-np.pi/6,MaxR=np.pi/6):
         Augmented[cim,:,:,:]=transform.warp(ToAugment[cim,:,:,:],tf)
     #Augmented=np.intp(Augmented*255)
     return Augmented
+
+
+def FramePreds(frameN,preds):  
+    frames, frameCounts=np.unique(frameN, return_counts=True)
+    maxCounts=np.zeros(len(frames),dtype=int)
+    maxPreds=np.zeros(len(frames),dtype=int)
+    for cf,f in enumerate(frames):
+        values, counts = np.unique(preds[frameN==f], return_counts=True)
+        ind = np.argmax(counts)
+        maxCounts[cf]=np.max(counts)
+        maxPreds[cf]=values[ind]
+    return maxPreds,maxCounts/frameCounts  
+
+def VisPredFrames(images,frames,preds,nframe=6,nsamp=10,startF=0):
+    fig,ax=plt.subplots(nrows=nframe,ncols=nsamp,figsize=(nsamp*1.3,nframe*1.7))
+    frameNs,counts=np.unique(frames,return_counts=True)
+    for ccf,cf in enumerate(np.arange(startF,startF+nframe)):
+        IdxS=int(np.nonzero(frames==frameNs[cf])[0][0])
+        for cs in range(nsamp):
+            if cs<=counts[cf]:
+                ax[ccf,cs].imshow(images[IdxS+cs,:,:,:])
+                ax[ccf,cs].set_title('pred'+str(preds[IdxS+cs]))
+                ax[ccf,cs].set_xlabel('frame'+str(frameNs[cf])) 
+            ax[ccf,cs].set_xticks([])
+            ax[ccf,cs].set_yticks([])

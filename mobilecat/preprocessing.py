@@ -146,10 +146,10 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
                         ImCut=CutImagebyGaze(imraw[ci],int(x),int(y),CutSize,xPix,yPix)
                         if  np.sum(np.isfinite(ImCut))>0 and ToSave:
                             if Test:
-                                if i%50==0:
-                                    image.imsave(path+'frame'+str(i)+'sample_'+str(cc)+'.jpg', ImCut)                            
+                                if i%80==0:  # every 80th frame is saved
+                                    image.imsave(path+'frame'+str(i)+'_sample'+str(cc)+'_S'+filename+'.jpg', ImCut)                            
                             else:
-                                image.imsave(path+'_frame'+str(i)+'sample_'+str(cc)+'.jpg', ImCut)                            
+                                image.imsave(path+'frame'+str(i)+'_sample'+str(cc)+'_S'+filename+'.jpg', ImCut)                            
 
                         
             else:
@@ -157,7 +157,7 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
                 if np.sum(np.isfinite(ImCut))>0:         
                     if ToSave:  
                         if Test: 
-                            if i%50==0: 
+                            if i%50==0:  # every 50th frame is saved
                                 image.imsave(path+filename+'_frame'+str(i)+'.jpg', ImCut)                            
                         else:
                             image.imsave(path+filename+'_frame'+str(i)+'.jpg', ImCut)
@@ -247,5 +247,13 @@ def ReadIm(path):
     ImArray=np.zeros(((len(images),np.shape(im1)[0],np.shape(im1)[1],np.shape(im1)[2])),dtype='uint8')
     for  ci,im in enumerate(images):
         ImArray[ci,:,:,:]=plt.imread(path+im)
-    return ImArray
+    return ImArray, images
+
+
+def ParseNames(impath):
+  #  image.imsave(path+'frame'+str(i)+'_sample'+str(cc)+'_S'+filename+'.jpg', ImCut)                            
+    FrameN=np.zeros(len(impath),dtype=int)
+    for ci,im in enumerate(impath):
+        FrameN[ci]=im[im.find('frame')+5:im.find('_')]
+    return FrameN
     
