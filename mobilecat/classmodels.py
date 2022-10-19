@@ -519,7 +519,7 @@ def AugmentShear(ToAugment,MinR=-np.pi/6,MaxR=np.pi/6):
     return Augmented
 
 
-def FramePreds(frameN,preds):  
+def FramePreds(frameN,preds,Vis=1):  
     ''' for an array of frame numbers and predictions;
     calcualte max and probability of max predictions'''
     frames, frameCounts=np.unique(frameN, return_counts=True)
@@ -530,6 +530,13 @@ def FramePreds(frameN,preds):
         ind = np.argmax(counts)
         maxCounts[cf]=np.max(counts)
         maxPreds[cf]=values[ind]
+    if Vis:           
+        nc=np.unique(preds)
+        plt.figure(figsize=(10,3))
+        plt.scatter(frames,maxPreds,alpha=maxCounts/frameCounts )
+        plt.xlabel('frame number',fontsize=15)
+        plt.yticks(np.arange(len(nc)),nc)
+        plt.ylabel('predicted category',fontsize=15)
     return maxPreds,maxCounts/frameCounts  
 
 def VisPredFrames(images,frames,preds,nframe=6,nsamp=10,startF=0):
