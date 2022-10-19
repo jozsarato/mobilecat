@@ -104,6 +104,7 @@ def GetGazIdx(ind,IdxConf,Gaze,xPix,yPix):
 
 
 def CutImagebyGaze(MyImage,X,Y,cutsize,xPix,yPix):
+    ''' cut image around gaze location, with cutsize*2 = size of rectangle'''
     if Y>cutsize and Y<yPix-cutsize and X>cutsize and X<xPix-cutsize:
         ImageCut=MyImage[yPix-(Y+cutsize):yPix-(Y-cutsize),:][:,X-cutsize:X+cutsize]
     else:
@@ -137,12 +138,12 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
             os.mkdir(path)
     for ci,i in enumerate(np.arange(FrameStart,FrameEnd)):
         X,Y,Xmean,Ymean,FrameFixs[ci]=GetGazIdx(i,IdxConf,Gaze,xPix,yPix)
-        if np.isfinite(Xmean): # only if valid gaze
-            if Each:
-                cc=0
+        if np.isfinite(Xmean): # only if valid gaze in frame
+            if Each:   # export each sample from frame
+                cc=0  # counter for file name 
                 for x,y in zip(X,Y):
-                    cc+=1
-                    if np.isfinite(x) and np.isfinite(y):
+                    cc+=1  
+                    if np.isfinite(x) and np.isfinite(y):  # only valid sample
                         ImCut=CutImagebyGaze(imraw[ci],int(x),int(y),CutSize,xPix,yPix)
                         if  np.sum(np.isfinite(ImCut))>0 and ToSave:
                             if Test:
@@ -152,7 +153,7 @@ def ExportFrames(imraw, Gaze,xPix,yPix,path,filename, CutSize=48,ToSave=1,images
                                 image.imsave(path+'frame'+str(i)+'_sample'+str(cc)+'_S'+filename+'.jpg', ImCut)                            
 
                         
-            else:
+            else:  # export average of frame
                 ImCut=CutImagebyGaze(imraw[ci],int(Xmean),int(Ymean),CutSize,xPix,yPix)  # cut image
                 if np.sum(np.isfinite(ImCut))>0:         
                     if ToSave:  
