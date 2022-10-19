@@ -20,3 +20,16 @@ training videos should contain only looking at a single stimulus  (preprocessing
 
 4. aggregate the classification using temporal information  (.py file in development)
 -- use a dynamic model, for a best temporal prediction (discrete hidden markov model ?)
+
+
+# installation instructions:
+1. clone repository
+2. in terminal navigate to root folder of repository
+3. execute: pip install -e .      (editable installation)  
+
+#  dependencies: 
+pandas
+numpy
+tensorflow    # the above installs it, if not previously installed
+scikit-image  # the above installs it, if not previously installed 
+opencv  (cv2)   # has to be installed separetely, (naming different in conda and pip, cv2, opencv, opencv-python) 
