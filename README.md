@@ -17,6 +17,7 @@ training videos should contain only looking at a single stimulus  (preprocessing
 
 3. use the above trained network to classify images from the test videos  (classmodels.py)
 --predicitons are made for each sample of each frame of the test video
+-- visualize prediction time-series & visualize predicitons for some example images
 
 4. aggregate the classification using temporal information  (.py file in development)
 -- use a dynamic model, for a best temporal prediction (discrete hidden markov model ?)
@@ -24,7 +25,7 @@ training videos should contain only looking at a single stimulus  (preprocessing
 
 ## installation instructions:
 1. clone repository
-2. in terminal navigate to root folder of repository
+2. in terminal/anaconda prompt, navigate to root folder of repository
 3. execute: pip install -e .      (editable installation)  
 
 ###  dependencies: 
