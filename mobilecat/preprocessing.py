@@ -228,7 +228,10 @@ def MainTest(PathFrom,PathTo,ToSave,Vis,Setup,CutSize=48,Mac=0,nvis=5,Test=1,fil
     print('Gaze Shape: ',np.shape(gaze))
     if Vis:
         fig,ax=plt.subplots(nrows=nvis)
-    images=LoadVid(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+        images=LoadVid(PathFrom,Vis=Vis, Verb=1,ax=ax,maxVis=nvis)
+    else:
+        images=LoadVid(PathFrom,Vis=Vis, Verb=1)
+
     print('length video: ', len(images))
     if Vis:
         plt.show()
