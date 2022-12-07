@@ -539,6 +539,20 @@ def FramePreds(frameN,preds,Vis=1):
         plt.ylabel('predicted category',fontsize=15)
     return maxPreds,maxCounts/frameCounts  
 
+
+def FramePredsV(frameN,preds,alp=.2):  
+    ''' for an array of frame numbers and predictions;
+    calcualte max and probability of max predictions'''    
+    nc=9
+    plt.figure(figsize=(10,3))
+    plt.scatter(frameN,preds,alpha=alp)
+    plt.xlabel('frame number',fontsize=15)
+    plt.yticks(np.arange(0,nc))
+    plt.ylabel('predicted category',fontsize=15)
+     
+
+
+
 def VisPredFrames(images,frames,preds,nframe=6,nsamp=10,startF=0):
     '''   visualize model predictions, flexible frame number  and sample number
         figure size adapts to number of frames and samples
@@ -557,3 +571,23 @@ def VisPredFrames(images,frames,preds,nframe=6,nsamp=10,startF=0):
                 ax[ccf,cs].set_xlabel('frame'+str(frameNs[cf])) 
             ax[ccf,cs].set_xticks([])
             ax[ccf,cs].set_yticks([])
+
+
+
+def VisPredFrames2(images,frames,preds,nhor=6,ncols=10,startF=0,stepS=50):
+    '''   visualize model predictions, flexible frame number  and sample number
+        figure size adapts to number of frames and samples
+        images: array of images
+        frames: frame number array (one/image)
+        preds: predictions
+        startF: starting frame number '''
+    fig,ax=plt.subplots(nrows=nhor,ncols=ncols,figsize=(nhor, ncols))
+    frameNs,counts=np.unique(frames,return_counts=True)
+    
+    for ccf,cf in enumerate(np.arange(startF,startF+ncols*nhor)):
+        nh=int(ccf/ncols)
+        nv=np.mod(ccf,ncols)
+        ax[nh,nv].imshow(images[startF+ccf,:,:,:])
+        ax[nh,nv].set_title('pred'+str(preds[startF+ccf]))
+        ax[nh,nv].set_xticks([])
+        ax[nh,nv].set_yticks([])
