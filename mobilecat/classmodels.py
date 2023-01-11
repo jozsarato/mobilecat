@@ -44,6 +44,7 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
     ''' load all image files from subdirectories and save as  comined numpy array, for each subfolder, excpects separte folder for each category'''
 
     Numfiles=np.zeros(NCat)
+    switched=0
     assert len(Dirs)==len(Numfiles), f'file number folder number mismatch, got {len(Dirs)}'
     for cd,d in enumerate(Dirs):
         if Mac==1:
@@ -59,13 +60,15 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
                 if Mac==1:
                     Image=plt.imread(path+'/'+d+'/'+f)
                 else:
-                    Image=plt.imread(path+'\\'+d+'/'+f)
-                if Setup==1:
+                    Image=plt.imread(path+'\\'+d+'\\'+f)
+                if Setup==1 and f.find('Image')>-1:   # color switching, since some of the training images were initally saved incorrectly BGR- RGB switch
+                    switched+=1  # count number of switch
                     Image=cv2.cvtColor(Image, cv2.COLOR_BGR2RGB)  
                 #image = load_img(path+'\\'+d+'/'+f)
                 data = img_to_array(Image)
                 ImageArray[cf,:,:,:]=data
             np.save(path+'image_'+str(d),ImageArray)
+    print('n color switched',switched)
     return Numfiles 
 
 
