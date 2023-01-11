@@ -51,22 +51,23 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
             files=os.listdir(path+'/'+d)
         else:
             files=os.listdir(path+'\\'+d)
-            
-        Numfiles[cd]=len(files)
+        for f in files:
+            if f.find('jpg')>-1:
+                Numfiles[cd]+=1
         if ToSave==1:
             ImageArray=np.zeros((((int(Numfiles[cd]),Dim,Dim,3))),dtype='int16')
             for cf,f in enumerate(files):
-                
-                if Mac==1:
-                    Image=plt.imread(path+'/'+d+'/'+f)
-                else:
-                    Image=plt.imread(path+'\\'+d+'\\'+f)
-                if Setup==1 and f.find('Image')>-1:   # color switching, since some of the training images were initally saved incorrectly BGR- RGB switch
-                    switched+=1  # count number of switch
-                    Image=cv2.cvtColor(Image, cv2.COLOR_BGR2RGB)  
-                #image = load_img(path+'\\'+d+'/'+f)
-                data = img_to_array(Image)
-                ImageArray[cf,:,:,:]=data
+                if f.find('jpg')>-1:
+                    if Mac==1:
+                        Image=plt.imread(path+'/'+d+'/'+f)
+                    else:
+                        Image=plt.imread(path+'\\'+d+'\\'+f)
+                    if Setup==1 and f.find('Image')>-1:   # color switching, since some of the training images were initally saved incorrectly BGR- RGB switch
+                        switched+=1  # count number of switch
+                        Image=cv2.cvtColor(Image, cv2.COLOR_BGR2RGB)  
+                    #image = load_img(path+'\\'+d+'/'+f)
+                    data = img_to_array(Image)
+                    ImageArray[cf,:,:,:]=data
             np.save(path+'image_'+str(d),ImageArray)
     print('n color switched',switched)
     return Numfiles 
