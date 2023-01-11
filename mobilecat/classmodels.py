@@ -54,10 +54,12 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
         for f in files:
             if f.find('jpg')>-1:
                 Numfiles[cd]+=1
+        cc=0
         if ToSave==1:
             ImageArray=np.zeros((((int(Numfiles[cd]),Dim,Dim,3))),dtype='int16')
             for cf,f in enumerate(files):
                 if f.find('jpg')>-1:
+                    
                     if Mac==1:
                         Image=plt.imread(path+'/'+d+'/'+f)
                     else:
@@ -67,7 +69,8 @@ def TrainImagestoNumpy(path,Dirs,ToSave=0,Mac=0,  Setup=1,Dim=96,NCat=9):
                         Image=cv2.cvtColor(Image, cv2.COLOR_BGR2RGB)  
                     #image = load_img(path+'\\'+d+'/'+f)
                     data = img_to_array(Image)
-                    ImageArray[cf,:,:,:]=data
+                    ImageArray[cc,:,:,:]=data
+                    cc+=1
             np.save(path+'image_'+str(d),ImageArray)
     print('n color switched',switched)
     return Numfiles 
