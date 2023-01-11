@@ -262,6 +262,24 @@ def CNN4hidden(dims_train,numcat):
     return model_CNN
 
 
+def CNN4hiddenv2(dims_train,numcat):
+    '''  set up keras convolutional neural network with two hidden layers '''
+    model_CNN = Sequential()  
+    model_CNN.add(Conv2D(filters=16, kernel_size=5, padding='same', activation='relu', input_shape=(dims_train[1],dims_train[2], dims_train[3]))) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=32, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=64, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Conv2D(filters=64, kernel_size=3, padding='same', activation='relu')) 
+    model_CNN.add(MaxPooling2D(pool_size=2))
+    model_CNN.add(Flatten())
+    model_CNN.add(Dense(numcat, activation='softmax'))
+    model_CNN.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return model_CNN
+
+
 
 
 
@@ -540,12 +558,11 @@ def FramePreds(frameN,preds,Vis=1):
     return maxPreds,maxCounts/frameCounts  
 
 
-def FramePredsV(frameN,preds,alp=.2):  
+def FramePredsV(frameN,preds,alp=.2,color='navy'):  
     ''' for an array of frame numbers and predictions;
     calcualte max and probability of max predictions'''    
     nc=9
-    plt.figure(figsize=(10,3))
-    plt.scatter(frameN,preds,alpha=alp)
+    plt.scatter(frameN,preds,alpha=alp,color=color)
     plt.xlabel('frame number',fontsize=15)
     plt.yticks(np.arange(0,nc))
     plt.ylabel('predicted category',fontsize=15)
@@ -591,3 +608,15 @@ def VisPredFrames2(images,frames,preds,nhor=6,ncols=10,startF=0,stepS=50):
         ax[nh,nv].set_title('pred'+str(preds[startF+ccf]))
         ax[nh,nv].set_xticks([])
         ax[nh,nv].set_yticks([])
+
+
+def SmoothPred(preds,thrn=2):
+    smoothpred=np.copy(preds)
+    smoothpred=np.float64(smoothpred)
+    for ci,i in enumerate(preds):
+        if ci>1 and ci<len(preds)-1:
+            if preds[ci-1]!=preds[ci] or preds[ci+1]!=preds[ci]:
+                smoothpred[ci]=np.NAN
+    return smoothpred
+
+
