@@ -6,5 +6,4 @@ mobilecat/preprocessing.py
 mobilecat.egg-info/PKG-INFO
 mobilecat.egg-info/SOURCES.txt
 mobilecat.egg-info/dependency_links.txt
-mobilecat.egg-info/requires.txt
 mobilecat.egg-info/top_level.txt

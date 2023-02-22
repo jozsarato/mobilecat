@@ -13,4 +13,4 @@ name='mobilecat',
 author='jozsef arato',
 version='0.1',
 packages=find_packages(),
-install_requires=['tensorflow','scikit-image','numpy','pandas'])
+install_requires=[]) #'tensorflow','scikit-image','numpy','pandas'

@@ -1,4 +1,0 @@
-tensorflow
-scikit-image
-numpy
-pandas
